@@ -84,10 +84,12 @@ private:
   /*
    *  Parameters
    */
-  /// ROS node handles (relative & private)
-  ros::NodeHandle nh_, nh_priv_;
+  /// ROS node handle
+  ros::NodeHandle nh_;
   /// node name
   std::string node_name_;
+  /// \brief for setting ROS name space
+  std::string robot_namespace_;
   /// extra thread for triggering ROS callbacks
 //  boost::shared_ptr<boost::thread> ros_spinner_thread_; necessary?
   /// flag for shutting down the spinner thread

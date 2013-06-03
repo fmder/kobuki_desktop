@@ -90,12 +90,23 @@ void GazeboRosKobuki::Load(physics::ModelPtr parent, sdf::ElementPtr sdf)
     ROS_ERROR_STREAM("Invalid model pointer! [" << node_name_ << "]");
     return;
   }
+
+  if (!ros::isInitialized())
+  {
+    ROS_FATAL("while loading gazebo_ros_kobuki plugin, ros is not initialized, please load a gazebo system plugin that initializes ros (e.g. libgazebo_ros_api_plugin.so from gazebo ros package)\n");
+    return;
+  }
+  
+  this->robot_namespace_ = "";
+  if (sdf->HasElement("robotNamespace"))
+    this->robot_namespace_ = sdf->GetElement("robotNamespace")->GetValueString() + "/";
+
   // Get then name of the parent model and use it as node name
   std::string model_name = sdf->GetParent()->GetValueString("name");
   gzdbg << "Plugin model name: " << model_name << "\n";
-  nh_ = ros::NodeHandle("");
+  
   // creating a private name pace until Gazebo implements topic remappings
-  nh_priv_ = ros::NodeHandle("/" + model_name);
+  nh_ = ros::NodeHandle(this->robot_namespace_);
   node_name_ = model_name;
 
   world_ = parent->GetWorld();
@@ -110,7 +121,7 @@ void GazeboRosKobuki::Load(physics::ModelPtr parent, sdf::ElementPtr sdf)
   /*
    * Prepare receiving motor power commands
    */
-  motor_power_sub_ = nh_priv_.subscribe("commands/motor_power", 10, &GazeboRosKobuki::motorPowerCB, this);
+  // motor_power_sub_ = nh_.subscribe("motor_power", 10, &GazeboRosKobuki::motorPowerCB, this);
   motors_enabled_ = true;
 
   /*
@@ -203,7 +214,7 @@ void GazeboRosKobuki::Load(physics::ModelPtr parent, sdf::ElementPtr sdf)
     return;
   }
   last_cmd_vel_time_ = world_->GetSimTime();
-  cmd_vel_sub_ = nh_priv_.subscribe("commands/velocity", 100, &GazeboRosKobuki::cmdVelCB, this);
+  cmd_vel_sub_ = nh_.subscribe("cmd_vel", 100, &GazeboRosKobuki::cmdVelCB, this);
 
   /*
    * Prepare cliff sensors
@@ -273,7 +284,7 @@ void GazeboRosKobuki::Load(physics::ModelPtr parent, sdf::ElementPtr sdf)
   cliff_sensor_left_->SetActive(true);
   cliff_sensor_front_->SetActive(true);
   cliff_sensor_right_->SetActive(true);
-  cliff_event_pub_ = nh_priv_.advertise<kobuki_msgs::CliffEvent>("events/cliff", 1);
+  cliff_event_pub_ = nh_.advertise<kobuki_msgs::CliffEvent>("events/cliff", 1);
 
   /*
    * Prepare bumper
@@ -292,11 +303,11 @@ void GazeboRosKobuki::Load(physics::ModelPtr parent, sdf::ElementPtr sdf)
   bumper_ = boost::shared_dynamic_cast<sensors::ContactSensor>(
             sensors::SensorManager::Instance()->GetSensor(bumper_name));
   bumper_->SetActive(true);
-  bumper_event_pub_ = nh_priv_.advertise<kobuki_msgs::BumperEvent>("events/bumper", 1);
+  bumper_event_pub_ = nh_.advertise<kobuki_msgs::BumperEvent>("events/bumper", 1);
 
   prev_update_time_ = world_->GetSimTime();
   ROS_INFO_STREAM("GazeboRosKobuki plugin ready to go! [" << node_name_ << "]");
-  update_connection_ = event::Events::ConnectWorldUpdateStart(boost::bind(&GazeboRosKobuki::OnUpdate, this));
+  update_connection_ = event::Events::ConnectWorldUpdateBegin(boost::bind(&GazeboRosKobuki::OnUpdate, this));
 }
 
 void GazeboRosKobuki::motorPowerCB( const kobuki_msgs::MotorPowerPtr &msg)
