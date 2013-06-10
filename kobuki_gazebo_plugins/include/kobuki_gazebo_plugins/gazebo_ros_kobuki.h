@@ -92,6 +92,10 @@ private:
   std::string robot_namespace_;
   /// extra thread for triggering ROS callbacks
 //  boost::shared_ptr<boost::thread> ros_spinner_thread_; necessary?
+  /// \brief base frame transform name, should match link name
+  std::string frame_name_;
+  /// \brief odometry frame transform name, should match link name
+  std::string odom_name_;
   /// flag for shutting down the spinner thread
   bool shutdown_requested_;
   /// pointer to the model

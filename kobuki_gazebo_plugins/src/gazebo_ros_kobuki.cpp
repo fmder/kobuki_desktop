@@ -101,6 +101,22 @@ void GazeboRosKobuki::Load(physics::ModelPtr parent, sdf::ElementPtr sdf)
   if (sdf->HasElement("robotNamespace"))
     this->robot_namespace_ = sdf->GetElement("robotNamespace")->GetValueString() + "/";
 
+  if (!sdf->HasElement("baseFrame"))
+  {
+    ROS_INFO("Kobuki plugin missing <baseFrame>, defaults to base_footprint");
+    this->frame_name_ = "base_footprint";
+  }
+  else
+    this->frame_name_ = sdf->GetElement("baseFrame")->GetValueString();
+
+  if (!sdf->HasElement("odomFrame"))
+  {
+    ROS_INFO("Kobuki plugin missing <odomFrame>, defaults to odom");
+    this->odom_name_ = "odom";
+  }
+  else
+    this->odom_name_ = sdf->GetElement("odomFrame")->GetValueString();
+
   // Get then name of the parent model and use it as node name
   std::string model_name = sdf->GetParent()->GetValueString("name");
   gzdbg << "Plugin model name: " << model_name << "\n";
@@ -108,6 +124,12 @@ void GazeboRosKobuki::Load(physics::ModelPtr parent, sdf::ElementPtr sdf)
   // creating a private name pace until Gazebo implements topic remappings
   nh_ = ros::NodeHandle(this->robot_namespace_);
   node_name_ = model_name;
+
+  // resolve tf prefix
+  std::string prefix;
+  nh_.getParam(std::string("tf_prefix"), prefix);
+  this->frame_name_ = tf::resolve(prefix, this->frame_name_);
+  this->odom_name_ = tf::resolve(prefix, this->odom_name_);
 
   world_ = parent->GetWorld();
 
@@ -361,8 +383,8 @@ void GazeboRosKobuki::OnUpdate()
    */
   odom_.header.stamp.sec = time_now.sec;
   odom_.header.stamp.nsec = time_now.nsec;
-  odom_.header.frame_id = "odom";
-  odom_.child_frame_id = "base_footprint";
+  odom_.header.frame_id = this->odom_name_;
+  odom_.child_frame_id = this->frame_name_;
   odom_tf_.header = odom_.header;
   odom_tf_.child_frame_id = odom_.child_frame_id;
 
