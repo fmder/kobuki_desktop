@@ -61,6 +61,10 @@ GazeboRosKobuki::GazeboRosKobuki() : shutdown_requested_(false)
   wheel_speed_cmd_[LEFT] = 0.0;
   wheel_speed_cmd_[RIGHT] = 0.0;
 
+  odom_pose_[0] = 0.0;
+  odom_pose_[1] = 0.0;
+  odom_pose_[2] = 0.0;
+
   // using the same values as in kobuki_node
   double pose_cov[36] = {0.1, 0, 0, 0, 0, 0,
                           0, 0.1, 0, 0, 0, 0,
